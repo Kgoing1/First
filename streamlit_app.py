@@ -22,15 +22,24 @@ if 'timeline_events' not in st.session_state:
 st.markdown("""
 <style>
     * {
-        font-family: 'Chicago', 'Monaco', monospace;
+        font-family: 'Monaco', 'Courier New', monospace !important;
     }
+    
+    body, [data-testid="stAppViewContainer"] {
+        background-color: #c0c0c0 !important;
+    }
+    
+    [data-testid="stMainBlockContainer"] {
+        background-color: #c0c0c0 !important;
+    }
+    
     .main-header {
         font-size: 2rem;
         font-weight: bold;
         text-align: center;
         margin-bottom: 2rem;
         color: #000;
-        font-family: 'Chicago', serif;
+        font-family: 'Monaco', monospace;
     }
     .section-header {
         font-size: 1.3rem;
@@ -38,55 +47,63 @@ st.markdown("""
         margin-top: 2rem;
         margin-bottom: 1rem;
         color: #000;
-        font-family: 'Chicago', serif;
+        font-family: 'Monaco', monospace;
         border-bottom: 2px solid #000;
         padding-bottom: 0.5rem;
     }
     .project-card {
-        background-color: #f0ede4;
+        background-color: #dfdfdf;
         padding: 1rem;
         border-radius: 0px;
         margin-bottom: 1rem;
         border: 2px solid #000;
         font-size: 0.9rem;
+        font-family: 'Monaco', monospace;
     }
     .timeline-item {
-        background-color: #f0ede4;
+        background-color: #dfdfdf;
         padding: 1rem;
         border-radius: 0px;
         margin-bottom: 1rem;
         border: 2px solid #000;
         font-size: 0.9rem;
+        font-family: 'Monaco', monospace;
     }
     .timeline-date {
         font-weight: bold;
         color: #000;
         font-size: 0.85rem;
+        font-family: 'Monaco', monospace;
     }
     .form-container {
-        background-color: #f0ede4;
+        background-color: #dfdfdf;
         padding: 1rem;
         border-radius: 0px;
         margin-bottom: 1rem;
         border: 2px solid #000;
+        font-family: 'Monaco', monospace;
     }
     button {
-        background-color: #f0ede4;
+        background-color: #c0c0c0;
         border: 2px solid #000;
         padding: 0.3rem 0.8rem;
-        font-family: 'Chicago', monospace;
+        font-family: 'Monaco', monospace;
         font-size: 0.85rem;
         cursor: pointer;
     }
     button:hover {
-        background-color: #e8ddd0;
+        background-color: #a8a8a8;
     }
     input, textarea, select {
         background-color: #fff;
         border: 2px solid #000;
         padding: 0.3rem;
-        font-family: 'Chicago', monospace;
+        font-family: 'Monaco', monospace;
         font-size: 0.85rem;
+    }
+    
+    h1, h2, h3, h4, h5, h6, p, label, div, span {
+        font-family: 'Monaco', monospace !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -264,8 +281,8 @@ st.markdown("### Contact")
 st.write("Reach out for collaborations or opportunities.")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.write("Email: your.email@example.com")
+    st.markdown("✉️ <span style='color: #666;'>Email:</span> your.email@example.com", unsafe_allow_html=True)
 with col2:
-    st.write("LinkedIn: [Profile](https://linkedin.com/in/yourprofile)")
+    st.markdown("🔗 <span style='color: #666;'>LinkedIn:</span> [Profile](https://linkedin.com/in/yourprofile)", unsafe_allow_html=True)
 with col3:
-    st.write("GitHub: [Profile](https://github.com/yourusername)")
+    st.markdown("🖥️ <span style='color: #666;'>GitHub:</span> [Profile](https://github.com/yourusername)", unsafe_allow_html=True)
