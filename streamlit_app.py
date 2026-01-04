@@ -1,5 +1,8 @@
 import streamlit as st
 from datetime import datetime
+import json
+import os
+from pathlib import Path
 
 # Set page config
 st.set_page_config(
@@ -8,18 +11,87 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize session state for storing projects
+# Create data directory for persistent storage
+DATA_DIR = Path("portfolio_data")
+DATA_DIR.mkdir(exist_ok=True)
+
+PHOTOS_DIR = DATA_DIR / "photos"
+PHOTOS_DIR.mkdir(exist_ok=True)
+
+# File paths for persistent storage
+MILESTONE_PROJECTS_FILE = DATA_DIR / "milestone_projects.json"
+SMALL_PROJECTS_FILE = DATA_DIR / "small_projects.json"
+TIMELINE_EVENTS_FILE = DATA_DIR / "timeline_events.json"
+
+# Load data from files
+def load_milestone_projects():
+    if MILESTONE_PROJECTS_FILE.exists():
+        with open(MILESTONE_PROJECTS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def load_small_projects():
+    if SMALL_PROJECTS_FILE.exists():
+        with open(SMALL_PROJECTS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def load_timeline_events():
+    if TIMELINE_EVENTS_FILE.exists():
+        with open(TIMELINE_EVENTS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def load_timeline_photos():
+    """Load timeline photos from disk"""
+    photos = {}
+    if PHOTOS_DIR.exists():
+        for photo_file in PHOTOS_DIR.glob("*"):
+            if photo_file.is_file():
+                with open(photo_file, 'rb') as f:
+                    photos[photo_file.stem] = f.read()
+    return photos
+
+# Initialize session state with persistent data
 if 'milestone_projects' not in st.session_state:
-    st.session_state.milestone_projects = []
+    st.session_state.milestone_projects = load_milestone_projects()
 
 if 'small_projects' not in st.session_state:
-    st.session_state.small_projects = []
+    st.session_state.small_projects = load_small_projects()
 
 if 'timeline_events' not in st.session_state:
-    st.session_state.timeline_events = []
+    st.session_state.timeline_events = load_timeline_events()
 
 if 'timeline_photos' not in st.session_state:
-    st.session_state.timeline_photos = {}
+    st.session_state.timeline_photos = load_timeline_photos()
+
+# Save functions
+def save_milestone_projects():
+    with open(MILESTONE_PROJECTS_FILE, 'w') as f:
+        json.dump(st.session_state.milestone_projects, f, indent=2)
+
+def save_small_projects():
+    with open(SMALL_PROJECTS_FILE, 'w') as f:
+        json.dump(st.session_state.small_projects, f, indent=2)
+
+def save_timeline_events():
+    with open(TIMELINE_EVENTS_FILE, 'w') as f:
+        json.dump(st.session_state.timeline_events, f, indent=2)
+
+def save_timeline_photo(event_key, photo_data, file_extension):
+    """Save timeline photo to disk"""
+    photo_file = PHOTOS_DIR / f"{event_key}{file_extension}"
+    with open(photo_file, 'wb') as f:
+        f.write(photo_data)
+
+def delete_timeline_photo(event_key):
+    """Delete timeline photo from disk"""
+    # Try common image extensions
+    for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+        photo_file = PHOTOS_DIR / f"{event_key}{ext}"
+        if photo_file.exists():
+            photo_file.unlink()
+            break
 
 # Custom CSS - Retro Macintosh Minimalistic Style
 st.markdown("""
@@ -141,6 +213,7 @@ with st.expander("+ Add Project"):
                 "image": image or "https://via.placeholder.com/300x200?text=No+Image"
             }
             st.session_state.milestone_projects.append(new_project)
+            save_milestone_projects()
             st.success("Project added successfully!")
 
 # Display milestone projects
@@ -180,6 +253,7 @@ with st.expander("+ Add Fundamental Project"):
                 "link": link
             }
             st.session_state.small_projects.append(new_project)
+            save_small_projects()
             st.success("Project added successfully!")
 
 # Display small projects
@@ -217,11 +291,15 @@ with st.expander("+ Add Timeline Event"):
                 "description": description
             }
             st.session_state.timeline_events.append(new_event)
+            save_timeline_events()
             
             # Store photo if uploaded
             if uploaded_file:
                 event_key = f"{date.strftime('%Y-%m-%d')}_{title}"
-                st.session_state.timeline_photos[event_key] = uploaded_file.getvalue()
+                file_ext = Path(uploaded_file.name).suffix
+                photo_data = uploaded_file.getvalue()
+                st.session_state.timeline_photos[event_key] = photo_data
+                save_timeline_photo(event_key, photo_data, file_ext)
             
             st.success("Event added successfully!")
 
@@ -257,8 +335,10 @@ if st.session_state.timeline_events:
             if st.button("Delete", key=f"delete_{idx}"):
                 # Remove photo if exists
                 if event_key in st.session_state.timeline_photos:
+                    delete_timeline_photo(event_key)
                     del st.session_state.timeline_photos[event_key]
                 st.session_state.timeline_events.pop(sorted_events.index(event))
+                save_timeline_events()
                 st.rerun()
         
         # Edit form
@@ -282,14 +362,33 @@ if st.session_state.timeline_events:
                                     "description": new_description
                                 }
                                 break
+                        save_timeline_events()
                         
                         # Update photo
                         new_event_key = f"{new_date.strftime('%Y-%m-%d')}_{new_title}"
                         if new_photo:
-                            st.session_state.timeline_photos[new_event_key] = new_photo.getvalue()
+                            file_ext = Path(new_photo.name).suffix
+                            photo_data = new_photo.getvalue()
+                            st.session_state.timeline_photos[new_event_key] = photo_data
+                            save_timeline_photo(new_event_key, photo_data, file_ext)
                         elif event_key != new_event_key and event_key in st.session_state.timeline_photos:
                             # Rename photo key if date or title changed
-                            st.session_state.timeline_photos[new_event_key] = st.session_state.timeline_photos.pop(event_key)
+                            photo_data = st.session_state.timeline_photos.pop(event_key)
+                            # Delete old photo and save with new key
+                            delete_timeline_photo(event_key)
+                            for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+                                old_photo = PHOTOS_DIR / f"{event_key}{ext}"
+                                if old_photo.exists():
+                                    break
+                            # Find extension of old photo
+                            for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+                                old_photo = PHOTOS_DIR / f"{event_key}{ext}"
+                                if old_photo.exists():
+                                    photo_data = old_photo.read_bytes()
+                                    delete_timeline_photo(event_key)
+                                    save_timeline_photo(new_event_key, photo_data, ext)
+                                    st.session_state.timeline_photos[new_event_key] = photo_data
+                                    break
                         
                         st.session_state[f"editing_{idx}"] = False
                         st.success("Event updated!")
