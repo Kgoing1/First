@@ -21,25 +21,14 @@ if 'timeline_events' not in st.session_state:
 # Custom CSS - Retro Macintosh Minimalistic Style
 st.markdown("""
 <style>
-    * {
-        font-family: 'Monaco', 'Courier New', monospace !important;
-    }
-    
-    body, [data-testid="stAppViewContainer"] {
-        background-color: #c0c0c0 !important;
-    }
-    
-    [data-testid="stMainBlockContainer"] {
-        background-color: #c0c0c0 !important;
-    }
-    
     .main-header {
         font-size: 2rem;
         font-weight: bold;
         text-align: center;
         margin-bottom: 2rem;
         color: #000;
-        font-family: 'Monaco', monospace;
+        font-family: 'Monaco', 'Courier New', monospace;
+        letter-spacing: 0.5px;
     }
     .section-header {
         font-size: 1.3rem;
@@ -47,63 +36,71 @@ st.markdown("""
         margin-top: 2rem;
         margin-bottom: 1rem;
         color: #000;
-        font-family: 'Monaco', monospace;
+        font-family: 'Monaco', 'Courier New', monospace;
         border-bottom: 2px solid #000;
         padding-bottom: 0.5rem;
     }
     .project-card {
-        background-color: #dfdfdf;
+        background-color: #f5f5f5;
         padding: 1rem;
         border-radius: 0px;
         margin-bottom: 1rem;
         border: 2px solid #000;
         font-size: 0.9rem;
-        font-family: 'Monaco', monospace;
+        font-family: 'Monaco', 'Courier New', monospace;
+    }
+    .project-card h3 {
+        font-family: 'Monaco', 'Courier New', monospace;
+        margin: 0.5rem 0;
+    }
+    .project-card h4 {
+        font-family: 'Monaco', 'Courier New', monospace;
+        margin: 0.5rem 0;
+    }
+    .project-card p {
+        font-family: 'Monaco', 'Courier New', monospace;
+        margin: 0.3rem 0;
     }
     .timeline-item {
-        background-color: #dfdfdf;
+        background-color: #f5f5f5;
         padding: 1rem;
         border-radius: 0px;
         margin-bottom: 1rem;
         border: 2px solid #000;
         font-size: 0.9rem;
-        font-family: 'Monaco', monospace;
+        font-family: 'Monaco', 'Courier New', monospace;
+    }
+    .timeline-item h4 {
+        font-family: 'Monaco', 'Courier New', monospace;
+        margin: 0.5rem 0;
+    }
+    .timeline-item p {
+        font-family: 'Monaco', 'Courier New', monospace;
+        margin: 0.3rem 0;
     }
     .timeline-date {
         font-weight: bold;
         color: #000;
         font-size: 0.85rem;
-        font-family: 'Monaco', monospace;
-    }
-    .form-container {
-        background-color: #dfdfdf;
-        padding: 1rem;
-        border-radius: 0px;
-        margin-bottom: 1rem;
-        border: 2px solid #000;
-        font-family: 'Monaco', monospace;
+        font-family: 'Monaco', 'Courier New', monospace;
     }
     button {
-        background-color: #c0c0c0;
+        background-color: #f0f0f0;
         border: 2px solid #000;
-        padding: 0.3rem 0.8rem;
-        font-family: 'Monaco', monospace;
+        padding: 0.4rem 0.8rem;
+        font-family: 'Monaco', 'Courier New', monospace;
         font-size: 0.85rem;
         cursor: pointer;
     }
     button:hover {
-        background-color: #a8a8a8;
+        background-color: #e0e0e0;
     }
     input, textarea, select {
         background-color: #fff;
         border: 2px solid #000;
-        padding: 0.3rem;
-        font-family: 'Monaco', monospace;
+        padding: 0.4rem;
+        font-family: 'Monaco', 'Courier New', monospace;
         font-size: 0.85rem;
-    }
-    
-    h1, h2, h3, h4, h5, h6, p, label, div, span {
-        font-family: 'Monaco', monospace !important;
     }
 </style>
 """, unsafe_allow_html=True)
