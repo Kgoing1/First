@@ -22,6 +22,11 @@ PHOTOS_DIR.mkdir(exist_ok=True)
 MILESTONE_PROJECTS_FILE = DATA_DIR / "milestone_projects.json"
 SMALL_PROJECTS_FILE = DATA_DIR / "small_projects.json"
 TIMELINE_EVENTS_FILE = DATA_DIR / "timeline_events.json"
+MILESTONE_PHOTOS_DIR = PHOTOS_DIR / "milestone"
+SMALL_PHOTOS_DIR = PHOTOS_DIR / "small"
+
+MILESTONE_PHOTOS_DIR.mkdir(exist_ok=True)
+SMALL_PHOTOS_DIR.mkdir(exist_ok=True)
 
 # Load data from files
 def load_milestone_projects():
@@ -52,6 +57,26 @@ def load_timeline_photos():
                     photos[photo_file.stem] = f.read()
     return photos
 
+def load_milestone_photos():
+    """Load milestone project photos from disk"""
+    photos = {}
+    if MILESTONE_PHOTOS_DIR.exists():
+        for photo_file in MILESTONE_PHOTOS_DIR.glob("*"):
+            if photo_file.is_file():
+                with open(photo_file, 'rb') as f:
+                    photos[photo_file.stem] = f.read()
+    return photos
+
+def load_small_photos():
+    """Load small project photos from disk"""
+    photos = {}
+    if SMALL_PHOTOS_DIR.exists():
+        for photo_file in SMALL_PHOTOS_DIR.glob("*"):
+            if photo_file.is_file():
+                with open(photo_file, 'rb') as f:
+                    photos[photo_file.stem] = f.read()
+    return photos
+
 # Initialize session state with persistent data
 if 'milestone_projects' not in st.session_state:
     st.session_state.milestone_projects = load_milestone_projects()
@@ -64,6 +89,12 @@ if 'timeline_events' not in st.session_state:
 
 if 'timeline_photos' not in st.session_state:
     st.session_state.timeline_photos = load_timeline_photos()
+
+if 'milestone_photos' not in st.session_state:
+    st.session_state.milestone_photos = load_milestone_photos()
+
+if 'small_photos' not in st.session_state:
+    st.session_state.small_photos = load_small_photos()
 
 # Save functions
 def save_milestone_projects():
@@ -89,6 +120,34 @@ def delete_timeline_photo(event_key):
     # Try common image extensions
     for ext in ['.jpg', '.jpeg', '.png', '.gif']:
         photo_file = PHOTOS_DIR / f"{event_key}{ext}"
+        if photo_file.exists():
+            photo_file.unlink()
+            break
+
+def save_milestone_photo(project_key, photo_data, file_extension):
+    """Save milestone project photo to disk"""
+    photo_file = MILESTONE_PHOTOS_DIR / f"{project_key}{file_extension}"
+    with open(photo_file, 'wb') as f:
+        f.write(photo_data)
+
+def delete_milestone_photo(project_key):
+    """Delete milestone project photo from disk"""
+    for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+        photo_file = MILESTONE_PHOTOS_DIR / f"{project_key}{ext}"
+        if photo_file.exists():
+            photo_file.unlink()
+            break
+
+def save_small_photo(project_key, photo_data, file_extension):
+    """Save small project photo to disk"""
+    photo_file = SMALL_PHOTOS_DIR / f"{project_key}{file_extension}"
+    with open(photo_file, 'wb') as f:
+        f.write(photo_data)
+
+def delete_small_photo(project_key):
+    """Delete small project photo from disk"""
+    for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+        photo_file = SMALL_PHOTOS_DIR / f"{project_key}{ext}"
         if photo_file.exists():
             photo_file.unlink()
             break
@@ -201,7 +260,7 @@ with st.expander("+ Add Project"):
         description = st.text_area("Project Description")
         technologies = st.text_input("Technologies (comma-separated)")
         link = st.text_input("Project Link")
-        image = st.text_input("Image URL")
+        image = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "gif"], key="milestone_photo")
         submitted = st.form_submit_button("Add Project")
 
         if submitted and title:
@@ -209,27 +268,115 @@ with st.expander("+ Add Project"):
                 "title": title,
                 "description": description,
                 "technologies": [tech.strip() for tech in technologies.split(',') if tech.strip()],
-                "link": link,
-                "image": image or "https://via.placeholder.com/300x200?text=No+Image"
+                "link": link
             }
             st.session_state.milestone_projects.append(new_project)
             save_milestone_projects()
+            
+            # Store photo if uploaded
+            if image:
+                project_key = title
+                file_ext = Path(image.name).suffix
+                photo_data = image.getvalue()
+                st.session_state.milestone_photos[project_key] = photo_data
+                save_milestone_photo(project_key, photo_data, file_ext)
+            
             st.success("Project added successfully!")
 
 # Display milestone projects
 if st.session_state.milestone_projects:
-    cols = st.columns(3)
-    for i, project in enumerate(st.session_state.milestone_projects):
-        with cols[i % 3]:
+    for idx, project in enumerate(st.session_state.milestone_projects):
+        project_key = project['title']
+        
+        col1, col2, col3 = st.columns([1, 0.15, 0.15])
+        
+        with col1:
+            # Display card with photo next to title if exists
+            photo_html = ""
+            if project_key in st.session_state.milestone_photos:
+                photo_html = f'<img src="data:image/png;base64,{__import__("base64").b64encode(st.session_state.milestone_photos[project_key]).decode()}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 5px; margin-right: 10px; vertical-align: middle;">'
+            
             st.markdown(f"""
             <div class="project-card">
-                <h3>{project['title']}</h3>
-                <img src="{project['image']}" style="width:100%; border-radius:5px;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    {photo_html}
+                    <h3 style="margin: 0;">{project['title']}</h3>
+                </div>
                 <p>{project['description']}</p>
                 <p><strong>Technologies:</strong> {', '.join(project['technologies'])}</p>
                 {"<a href='" + project['link'] + "' target='_blank'>View Project</a>" if project['link'] else ""}
             </div>
             """, unsafe_allow_html=True)
+        
+        with col2:
+            if st.button("Edit", key=f"edit_milestone_{idx}"):
+                st.session_state[f"editing_milestone_{idx}"] = True
+        
+        with col3:
+            if st.button("Delete", key=f"delete_milestone_{idx}"):
+                # Remove photo if exists
+                if project_key in st.session_state.milestone_photos:
+                    delete_milestone_photo(project_key)
+                    del st.session_state.milestone_photos[project_key]
+                st.session_state.milestone_projects.pop(idx)
+                save_milestone_projects()
+                st.rerun()
+        
+        # Edit form
+        if st.session_state.get(f"editing_milestone_{idx}", False):
+            with st.form(f"edit_milestone_form_{idx}"):
+                new_title = st.text_input("Project Title", value=project['title'], key=f"edit_m_title_{idx}")
+                new_description = st.text_area("Project Description", value=project['description'], key=f"edit_m_desc_{idx}")
+                new_technologies = st.text_input("Technologies (comma-separated)", value=', '.join(project['technologies']), key=f"edit_m_tech_{idx}")
+                new_link = st.text_input("Project Link", value=project['link'], key=f"edit_m_link_{idx}")
+                new_photo = st.file_uploader("Update photo", type=["jpg", "jpeg", "png", "gif"], key=f"edit_m_photo_{idx}")
+                
+                col_save, col_cancel = st.columns(2)
+                
+                with col_save:
+                    if st.form_submit_button("Save Changes", key=f"save_edit_m_{idx}"):
+                        # Find and update the project
+                        for i, p in enumerate(st.session_state.milestone_projects):
+                            if p['title'] == project['title']:
+                                st.session_state.milestone_projects[i] = {
+                                    "title": new_title,
+                                    "description": new_description,
+                                    "technologies": [tech.strip() for tech in new_technologies.split(',') if tech.strip()],
+                                    "link": new_link
+                                }
+                                break
+                        save_milestone_projects()
+                        
+                        # Update photo
+                        if new_photo:
+                            file_ext = Path(new_photo.name).suffix
+                            photo_data = new_photo.getvalue()
+                            # Delete old photo if title changed
+                            if project_key != new_title and project_key in st.session_state.milestone_photos:
+                                delete_milestone_photo(project_key)
+                                del st.session_state.milestone_photos[project_key]
+                            st.session_state.milestone_photos[new_title] = photo_data
+                            save_milestone_photo(new_title, photo_data, file_ext)
+                        elif project_key != new_title and project_key in st.session_state.milestone_photos:
+                            # Rename photo key if title changed
+                            photo_data = st.session_state.milestone_photos.pop(project_key)
+                            for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+                                old_photo = MILESTONE_PHOTOS_DIR / f"{project_key}{ext}"
+                                if old_photo.exists():
+                                    photo_data = old_photo.read_bytes()
+                                    delete_milestone_photo(project_key)
+                                    save_milestone_photo(new_title, photo_data, ext)
+                                    st.session_state.milestone_photos[new_title] = photo_data
+                                    break
+                        
+                        st.session_state[f"editing_milestone_{idx}"] = False
+                        st.success("Project updated!")
+                        st.rerun()
+                
+                with col_cancel:
+                    if st.form_submit_button("Cancel", key=f"cancel_edit_m_{idx}"):
+                        st.session_state[f"editing_milestone_{idx}"] = False
+                        st.rerun()
 else:
     st.info("No milestone projects added yet. Use the form above to add your first project!")
 
@@ -243,6 +390,7 @@ with st.expander("+ Add Fundamental Project"):
         description = st.text_area("Project Description", key="small_desc")
         technologies = st.text_input("Technologies (comma-separated)", key="small_tech")
         link = st.text_input("Project Link", key="small_link")
+        image = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "gif"], key="small_photo")
         submitted = st.form_submit_button("Add Project", key="small_submit")
 
         if submitted and title:
@@ -254,21 +402,111 @@ with st.expander("+ Add Fundamental Project"):
             }
             st.session_state.small_projects.append(new_project)
             save_small_projects()
+            
+            # Store photo if uploaded
+            if image:
+                project_key = title
+                file_ext = Path(image.name).suffix
+                photo_data = image.getvalue()
+                st.session_state.small_photos[project_key] = photo_data
+                save_small_photo(project_key, photo_data, file_ext)
+            
             st.success("Project added successfully!")
 
 # Display small projects
 if st.session_state.small_projects:
-    cols = st.columns(2)
-    for i, project in enumerate(st.session_state.small_projects):
-        with cols[i % 2]:
+    for idx, project in enumerate(st.session_state.small_projects):
+        project_key = project['title']
+        
+        col1, col2, col3 = st.columns([1, 0.15, 0.15])
+        
+        with col1:
+            # Display card with photo next to title if exists
+            photo_html = ""
+            if project_key in st.session_state.small_photos:
+                photo_html = f'<img src="data:image/png;base64,{__import__("base64").b64encode(st.session_state.small_photos[project_key]).decode()}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 5px; margin-right: 10px; vertical-align: middle;">'
+            
             st.markdown(f"""
             <div class="project-card">
-                <h4>{project['title']}</h4>
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    {photo_html}
+                    <h4 style="margin: 0;">{project['title']}</h4>
+                </div>
                 <p>{project['description']}</p>
                 <p><strong>Technologies:</strong> {', '.join(project['technologies'])}</p>
                 {"<a href='" + project['link'] + "' target='_blank'>View Code</a>" if project['link'] else ""}
             </div>
             """, unsafe_allow_html=True)
+        
+        with col2:
+            if st.button("Edit", key=f"edit_small_{idx}"):
+                st.session_state[f"editing_small_{idx}"] = True
+        
+        with col3:
+            if st.button("Delete", key=f"delete_small_{idx}"):
+                # Remove photo if exists
+                if project_key in st.session_state.small_photos:
+                    delete_small_photo(project_key)
+                    del st.session_state.small_photos[project_key]
+                st.session_state.small_projects.pop(idx)
+                save_small_projects()
+                st.rerun()
+        
+        # Edit form
+        if st.session_state.get(f"editing_small_{idx}", False):
+            with st.form(f"edit_small_form_{idx}"):
+                new_title = st.text_input("Project Title", value=project['title'], key=f"edit_s_title_{idx}")
+                new_description = st.text_area("Project Description", value=project['description'], key=f"edit_s_desc_{idx}")
+                new_technologies = st.text_input("Technologies (comma-separated)", value=', '.join(project['technologies']), key=f"edit_s_tech_{idx}")
+                new_link = st.text_input("Project Link", value=project['link'], key=f"edit_s_link_{idx}")
+                new_photo = st.file_uploader("Update photo", type=["jpg", "jpeg", "png", "gif"], key=f"edit_s_photo_{idx}")
+                
+                col_save, col_cancel = st.columns(2)
+                
+                with col_save:
+                    if st.form_submit_button("Save Changes", key=f"save_edit_s_{idx}"):
+                        # Find and update the project
+                        for i, p in enumerate(st.session_state.small_projects):
+                            if p['title'] == project['title']:
+                                st.session_state.small_projects[i] = {
+                                    "title": new_title,
+                                    "description": new_description,
+                                    "technologies": [tech.strip() for tech in new_technologies.split(',') if tech.strip()],
+                                    "link": new_link
+                                }
+                                break
+                        save_small_projects()
+                        
+                        # Update photo
+                        if new_photo:
+                            file_ext = Path(new_photo.name).suffix
+                            photo_data = new_photo.getvalue()
+                            # Delete old photo if title changed
+                            if project_key != new_title and project_key in st.session_state.small_photos:
+                                delete_small_photo(project_key)
+                                del st.session_state.small_photos[project_key]
+                            st.session_state.small_photos[new_title] = photo_data
+                            save_small_photo(new_title, photo_data, file_ext)
+                        elif project_key != new_title and project_key in st.session_state.small_photos:
+                            # Rename photo key if title changed
+                            photo_data = st.session_state.small_photos.pop(project_key)
+                            for ext in ['.jpg', '.jpeg', '.png', '.gif']:
+                                old_photo = SMALL_PHOTOS_DIR / f"{project_key}{ext}"
+                                if old_photo.exists():
+                                    photo_data = old_photo.read_bytes()
+                                    delete_small_photo(project_key)
+                                    save_small_photo(new_title, photo_data, ext)
+                                    st.session_state.small_photos[new_title] = photo_data
+                                    break
+                        
+                        st.session_state[f"editing_small_{idx}"] = False
+                        st.success("Project updated!")
+                        st.rerun()
+                
+                with col_cancel:
+                    if st.form_submit_button("Cancel", key=f"cancel_edit_s_{idx}"):
+                        st.session_state[f"editing_small_{idx}"] = False
+                        st.rerun()
 else:
     st.info("No small projects added yet. Use the form above to add your first project!")
 
