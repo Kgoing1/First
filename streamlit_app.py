@@ -18,6 +18,9 @@ if 'small_projects' not in st.session_state:
 if 'timeline_events' not in st.session_state:
     st.session_state.timeline_events = []
 
+if 'timeline_photos' not in st.session_state:
+    st.session_state.timeline_photos = {}
+
 # Custom CSS - Retro Macintosh Minimalistic Style
 st.markdown("""
 <style>
@@ -111,8 +114,9 @@ st.markdown('<div class="main-header">🚀 My Portfolio</div>', unsafe_allow_htm
 # About section
 st.markdown('<div class="section-header">👋 About Me</div>', unsafe_allow_html=True)
 st.write("""
-Welcome to my portfolio! I'm a passionate developer/learning enthusiast who loves creating innovative solutions.
-This website showcases my journey through milestone projects, smaller experiments, and my learning timeline.
+Hello! I'm **Isaac Ng**, a passionate learning enthusiast with a strong interest in **Machine Learning and Deep Learning**.
+I love exploring innovative solutions and documenting my learning journey.
+This portfolio showcases my milestone projects, fundamental experiments, and my learning timeline with visual memories.
 """)
 
 # Milestone Projects section
@@ -203,6 +207,7 @@ with st.expander("+ Add Timeline Event"):
         date = st.date_input("Event Date")
         title = st.text_input("Event Title", key="timeline_title")
         description = st.text_area("Event Description", key="timeline_desc")
+        uploaded_file = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "gif"], key="timeline_photo")
         submitted = st.form_submit_button("Add Event", key="timeline_submit")
 
         if submitted and title:
@@ -212,6 +217,12 @@ with st.expander("+ Add Timeline Event"):
                 "description": description
             }
             st.session_state.timeline_events.append(new_event)
+            
+            # Store photo if uploaded
+            if uploaded_file:
+                event_key = f"{date.strftime('%Y-%m-%d')}_{title}"
+                st.session_state.timeline_photos[event_key] = uploaded_file.getvalue()
+            
             st.success("Event added successfully!")
 
 # Display timeline events (sorted by date, most recent first)
@@ -221,6 +232,7 @@ if st.session_state.timeline_events:
     for idx, event in enumerate(sorted_events):
         date_obj = datetime.strptime(event['date'], '%Y-%m-%d')
         formatted_date = date_obj.strftime('%B %Y')
+        event_key = f"{event['date']}_{event['title']}"
         
         col1, col2, col3 = st.columns([1, 0.15, 0.15])
         
@@ -232,6 +244,10 @@ if st.session_state.timeline_events:
                 <p>{event['description']}</p>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Display photo if exists
+            if event_key in st.session_state.timeline_photos:
+                st.image(st.session_state.timeline_photos[event_key], use_column_width=True)
         
         with col2:
             if st.button("Edit", key=f"edit_{idx}"):
@@ -239,6 +255,9 @@ if st.session_state.timeline_events:
         
         with col3:
             if st.button("Delete", key=f"delete_{idx}"):
+                # Remove photo if exists
+                if event_key in st.session_state.timeline_photos:
+                    del st.session_state.timeline_photos[event_key]
                 st.session_state.timeline_events.pop(sorted_events.index(event))
                 st.rerun()
         
@@ -248,6 +267,8 @@ if st.session_state.timeline_events:
                 new_date = st.date_input("Event Date", value=datetime.strptime(event['date'], '%Y-%m-%d').date(), key=f"edit_date_{idx}")
                 new_title = st.text_input("Event Title", value=event['title'], key=f"edit_title_{idx}")
                 new_description = st.text_area("Event Description", value=event['description'], key=f"edit_desc_{idx}")
+                new_photo = st.file_uploader("Update photo", type=["jpg", "jpeg", "png", "gif"], key=f"edit_photo_{idx}")
+                
                 col_save, col_cancel = st.columns(2)
                 
                 with col_save:
@@ -261,6 +282,15 @@ if st.session_state.timeline_events:
                                     "description": new_description
                                 }
                                 break
+                        
+                        # Update photo
+                        new_event_key = f"{new_date.strftime('%Y-%m-%d')}_{new_title}"
+                        if new_photo:
+                            st.session_state.timeline_photos[new_event_key] = new_photo.getvalue()
+                        elif event_key != new_event_key and event_key in st.session_state.timeline_photos:
+                            # Rename photo key if date or title changed
+                            st.session_state.timeline_photos[new_event_key] = st.session_state.timeline_photos.pop(event_key)
+                        
                         st.session_state[f"editing_{idx}"] = False
                         st.success("Event updated!")
                         st.rerun()
@@ -278,8 +308,8 @@ st.markdown("### Contact")
 st.write("Reach out for collaborations or opportunities.")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown("✉️ <span style='color: #666;'>Email:</span> your.email@example.com", unsafe_allow_html=True)
+    st.markdown("✉️ <span style='color: #666;'>Name:</span> Isaac Ng", unsafe_allow_html=True)
 with col2:
-    st.markdown("🔗 <span style='color: #666;'>LinkedIn:</span> [Profile](https://linkedin.com/in/yourprofile)", unsafe_allow_html=True)
+    st.markdown("🖥️ <span style='color: #666;'>GitHub:</span> [Kgoing1](https://github.com/Kgoing1)", unsafe_allow_html=True)
 with col3:
-    st.markdown("🖥️ <span style='color: #666;'>GitHub:</span> [Profile](https://github.com/yourusername)", unsafe_allow_html=True)
+    st.markdown("🚀 <span style='color: #666;'>Focus:</span> ML/DL Learning", unsafe_allow_html=True)
