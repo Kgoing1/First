@@ -18,47 +18,75 @@ if 'small_projects' not in st.session_state:
 if 'timeline_events' not in st.session_state:
     st.session_state.timeline_events = []
 
-# Custom CSS for better styling
+# Custom CSS - Retro Macintosh Minimalistic Style
 st.markdown("""
 <style>
+    * {
+        font-family: 'Chicago', 'Monaco', monospace;
+    }
     .main-header {
-        font-size: 3rem;
+        font-size: 2rem;
         font-weight: bold;
         text-align: center;
         margin-bottom: 2rem;
-        color: #1f77b4;
+        color: #000;
+        font-family: 'Chicago', serif;
     }
     .section-header {
-        font-size: 2rem;
+        font-size: 1.3rem;
         font-weight: bold;
         margin-top: 2rem;
         margin-bottom: 1rem;
-        color: #ff7f0e;
+        color: #000;
+        font-family: 'Chicago', serif;
+        border-bottom: 2px solid #000;
+        padding-bottom: 0.5rem;
     }
     .project-card {
-        background-color: #f0f2f6;
+        background-color: #f0ede4;
         padding: 1rem;
-        border-radius: 10px;
+        border-radius: 0px;
         margin-bottom: 1rem;
-        border-left: 5px solid #1f77b4;
+        border: 2px solid #000;
+        font-size: 0.9rem;
     }
     .timeline-item {
-        background-color: #e8f4f8;
+        background-color: #f0ede4;
         padding: 1rem;
-        border-radius: 10px;
+        border-radius: 0px;
         margin-bottom: 1rem;
-        border-left: 5px solid #2ca02c;
+        border: 2px solid #000;
+        font-size: 0.9rem;
     }
     .timeline-date {
         font-weight: bold;
-        color: #2ca02c;
+        color: #000;
+        font-size: 0.85rem;
     }
     .form-container {
-        background-color: #f8f9fa;
+        background-color: #f0ede4;
         padding: 1rem;
-        border-radius: 10px;
+        border-radius: 0px;
         margin-bottom: 1rem;
-        border: 1px solid #dee2e6;
+        border: 2px solid #000;
+    }
+    button {
+        background-color: #f0ede4;
+        border: 2px solid #000;
+        padding: 0.3rem 0.8rem;
+        font-family: 'Chicago', monospace;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #e8ddd0;
+    }
+    input, textarea, select {
+        background-color: #fff;
+        border: 2px solid #000;
+        padding: 0.3rem;
+        font-family: 'Chicago', monospace;
+        font-size: 0.85rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -74,10 +102,10 @@ This website showcases my journey through milestone projects, smaller experiment
 """)
 
 # Milestone Projects section
-st.markdown('<div class="section-header">🏆 Milestone Projects</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Projects</div>', unsafe_allow_html=True)
 
 # Form to add milestone projects
-with st.expander("➕ Add Milestone Project"):
+with st.expander("+ Add Project"):
     with st.form("milestone_form"):
         title = st.text_input("Project Title")
         description = st.text_area("Project Description")
@@ -114,11 +142,11 @@ if st.session_state.milestone_projects:
 else:
     st.info("No milestone projects added yet. Use the form above to add your first project!")
 
-# Small Projects section
-st.markdown('<div class="section-header">🔧 Small Projects</div>', unsafe_allow_html=True)
+# Fundamental Projects section
+st.markdown('<div class="section-header">Fundamental Projects</div>', unsafe_allow_html=True)
 
 # Form to add small projects
-with st.expander("➕ Add Small Project"):
+with st.expander("+ Add Fundamental Project"):
     with st.form("small_form"):
         title = st.text_input("Project Title", key="small_title")
         description = st.text_area("Project Description", key="small_desc")
@@ -153,10 +181,10 @@ else:
     st.info("No small projects added yet. Use the form above to add your first project!")
 
 # Learning Timeline section
-st.markdown('<div class="section-header">📚 Learning Timeline</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">Learning Timeline</div>', unsafe_allow_html=True)
 
 # Form to add timeline events
-with st.expander("➕ Add Timeline Event"):
+with st.expander("+ Add Timeline Event"):
     with st.form("timeline_form"):
         date = st.date_input("Event Date")
         title = st.text_input("Event Title", key="timeline_title")
@@ -176,27 +204,68 @@ with st.expander("➕ Add Timeline Event"):
 if st.session_state.timeline_events:
     # Sort events by date
     sorted_events = sorted(st.session_state.timeline_events, key=lambda x: x['date'], reverse=True)
-    for event in sorted_events:
+    for idx, event in enumerate(sorted_events):
         date_obj = datetime.strptime(event['date'], '%Y-%m-%d')
         formatted_date = date_obj.strftime('%B %Y')
-        st.markdown(f"""
-        <div class="timeline-item">
-            <div class="timeline-date">{formatted_date}</div>
-            <h4>{event['title']}</h4>
-            <p>{event['description']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 0.15, 0.15])
+        
+        with col1:
+            st.markdown(f"""
+            <div class="timeline-item">
+                <div class="timeline-date">{formatted_date}</div>
+                <h4>{event['title']}</h4>
+                <p>{event['description']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            if st.button("Edit", key=f"edit_{idx}"):
+                st.session_state[f"editing_{idx}"] = True
+        
+        with col3:
+            if st.button("Delete", key=f"delete_{idx}"):
+                st.session_state.timeline_events.pop(sorted_events.index(event))
+                st.rerun()
+        
+        # Edit form
+        if st.session_state.get(f"editing_{idx}", False):
+            with st.form(f"edit_timeline_form_{idx}"):
+                new_date = st.date_input("Event Date", value=datetime.strptime(event['date'], '%Y-%m-%d').date(), key=f"edit_date_{idx}")
+                new_title = st.text_input("Event Title", value=event['title'], key=f"edit_title_{idx}")
+                new_description = st.text_area("Event Description", value=event['description'], key=f"edit_desc_{idx}")
+                col_save, col_cancel = st.columns(2)
+                
+                with col_save:
+                    if st.form_submit_button("Save Changes", key=f"save_edit_{idx}"):
+                        # Find and update the event
+                        for i, e in enumerate(st.session_state.timeline_events):
+                            if e['date'] == event['date'] and e['title'] == event['title']:
+                                st.session_state.timeline_events[i] = {
+                                    "date": new_date.strftime('%Y-%m-%d'),
+                                    "title": new_title,
+                                    "description": new_description
+                                }
+                                break
+                        st.session_state[f"editing_{idx}"] = False
+                        st.success("Event updated!")
+                        st.rerun()
+                
+                with col_cancel:
+                    if st.form_submit_button("Cancel", key=f"cancel_edit_{idx}"):
+                        st.session_state[f"editing_{idx}"] = False
+                        st.rerun()
 else:
     st.info("No timeline events added yet. Use the form above to add your first learning milestone!")
 
 # Footer
 st.markdown("---")
-st.markdown("### 📞 Contact Me")
-st.write("Feel free to reach out for collaborations or opportunities!")
+st.markdown("### Contact")
+st.write("Reach out for collaborations or opportunities.")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.write("📧 Email: your.email@example.com")
+    st.write("Email: your.email@example.com")
 with col2:
-    st.write("💼 LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)")
+    st.write("LinkedIn: [Profile](https://linkedin.com/in/yourprofile)")
 with col3:
-    st.write("🐙 GitHub: [Your GitHub](https://github.com/yourusername)")
+    st.write("GitHub: [Profile](https://github.com/yourusername)")
