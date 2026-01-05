@@ -349,11 +349,6 @@ if st.session_state.milestone_projects:
             if project_key in st.session_state.milestone_photos:
                 photo_html = f'<img src="data:image/png;base64,{__import__("base64").b64encode(st.session_state.milestone_photos[project_key]).decode()}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 5px; margin-right: 10px; vertical-align: middle;">'
             
-            # Build link HTML
-            link_html = ""
-            if project['link']:
-                link_html = f'<p><a href="{project["link"]}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold;">🔗 View Project</a></p>'
-            
             st.markdown(f"""
             <div class="project-card">
                 <div style="display: flex; align-items: center; margin-bottom: 10px;">
@@ -362,10 +357,16 @@ if st.session_state.milestone_projects:
                 </div>
                 <p><strong>Released:</strong> {release_date_formatted}</p>
                 <p><strong>Technologies:</strong> {', '.join(project['technologies'])}</p>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Display description and link inside a container
+            st.markdown(f"""
+            <div style="border: 2px solid #000; border-top: none; padding: 10px; margin-top: -2px;">
+                <div style="margin-bottom: 10px;">
                     {project['description']}
                 </div>
-                {link_html}
+                <a href="{project['link']}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold;">🔗 View Project</a>
             </div>
             """, unsafe_allow_html=True)
         
@@ -504,11 +505,6 @@ if st.session_state.small_projects:
             if project_key in st.session_state.small_photos:
                 photo_html = f'<img src="data:image/png;base64,{__import__("base64").b64encode(st.session_state.small_photos[project_key]).decode()}" style="height: 60px; width: 60px; object-fit: cover; border-radius: 5px; margin-right: 10px; vertical-align: middle;">'
             
-            # Build link HTML
-            link_html = ""
-            if project['link']:
-                link_html = f'<p><a href="{project["link"]}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold;">🔗 View Code</a></p>'
-            
             st.markdown(f"""
             <div class="project-card">
                 <div style="display: flex; align-items: center; margin-bottom: 10px;">
@@ -517,10 +513,16 @@ if st.session_state.small_projects:
                 </div>
                 <p><strong>Released:</strong> {release_date_formatted}</p>
                 <p><strong>Technologies:</strong> {', '.join(project['technologies'])}</p>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Display description and link inside a container
+            st.markdown(f"""
+            <div style="border: 2px solid #000; border-top: none; padding: 10px; margin-top: -2px;">
+                <div style="margin-bottom: 10px;">
                     {project['description']}
                 </div>
-                {link_html}
+                <a href="{project['link']}" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold;">🔗 View Code</a>
             </div>
             """, unsafe_allow_html=True)
         
