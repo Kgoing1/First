@@ -3,6 +3,8 @@ from datetime import datetime
 import json
 import os
 from pathlib import Path
+import base64
+import tempfile
 
 # Set page config
 st.set_page_config(
@@ -152,6 +154,46 @@ def delete_small_photo(project_key):
             photo_file.unlink()
             break
 
+# Rich Text Editor Helper
+def create_rich_text_editor(label, value="", key_prefix=""):
+    """Create a rich text editor with formatting options"""
+    st.markdown(f"**{label}**")
+    
+    # Create three tabs: Direct Input, File Upload, and Preview
+    tab1, tab2, tab3 = st.tabs(["✏️ Text Input", "📄 Upload File", "👁️ Preview"])
+    
+    with tab1:
+        # Text input with formatting guide
+        st.caption("💡 Formatting tips: Use **bold**, *italic*, - for bullets, 1. for numbers")
+        text_input = st.text_area(
+            label="Enter description (supports Markdown formatting)",
+            value=value,
+            height=200,
+            label_visibility="collapsed",
+            key=f"{key_prefix}_text_input"
+        )
+    
+    with tab2:
+        uploaded_text_file = st.file_uploader(
+            "Upload a .txt file",
+            type=["txt"],
+            key=f"{key_prefix}_file_upload"
+        )
+        text_from_file = ""
+        if uploaded_text_file is not None:
+            text_from_file = uploaded_text_file.getvalue().decode("utf-8")
+            st.caption("✅ File loaded successfully")
+    
+    with tab3:
+        # Show formatted preview
+        combined_text = text_from_file if text_from_file else text_input
+        st.markdown("### Preview")
+        st.markdown(combined_text if combined_text else "*No content yet*")
+    
+    # Return the final text (prefer file input if available)
+    final_text = text_from_file if text_from_file else text_input
+    return final_text
+
 # Custom CSS - Retro Macintosh Minimalistic Style
 st.markdown("""
 <style>
@@ -257,7 +299,8 @@ st.markdown('<div class="section-header">Projects</div>', unsafe_allow_html=True
 with st.expander("+ Add Project"):
     with st.form("milestone_form"):
         title = st.text_input("Project Title")
-        description = st.text_area("Project Description")
+        release_date = st.date_input("Release Date", value=datetime.now().date())
+        description = create_rich_text_editor("Project Description", key_prefix="milestone_desc")
         technologies = st.text_input("Technologies (comma-separated)")
         link = st.text_input("Project Link")
         image = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "gif"], key="milestone_photo")
@@ -266,6 +309,7 @@ with st.expander("+ Add Project"):
         if submitted and title:
             new_project = {
                 "title": title,
+                "release_date": release_date.strftime('%Y-%m-%d'),
                 "description": description,
                 "technologies": [tech.strip() for tech in technologies.split(',') if tech.strip()],
                 "link": link
@@ -287,6 +331,15 @@ with st.expander("+ Add Project"):
 if st.session_state.milestone_projects:
     for idx, project in enumerate(st.session_state.milestone_projects):
         project_key = project['title']
+        release_date_str = project.get('release_date', 'N/A')
+        if release_date_str != 'N/A':
+            try:
+                release_date_obj = datetime.strptime(release_date_str, '%Y-%m-%d')
+                release_date_formatted = release_date_obj.strftime('%B %Y')
+            except:
+                release_date_formatted = release_date_str
+        else:
+            release_date_formatted = 'N/A'
         
         col1, col2, col3 = st.columns([1, 0.15, 0.15])
         
@@ -302,11 +355,14 @@ if st.session_state.milestone_projects:
                     {photo_html}
                     <h3 style="margin: 0;">{project['title']}</h3>
                 </div>
-                <p>{project['description']}</p>
+                <p><strong>Released:</strong> {release_date_formatted}</p>
                 <p><strong>Technologies:</strong> {', '.join(project['technologies'])}</p>
-                {"<a href='" + project['link'] + "' target='_blank'>View Project</a>" if project['link'] else ""}
             </div>
             """, unsafe_allow_html=True)
+            # Display description with proper formatting
+            st.markdown(project['description'])
+            if project['link']:
+                st.markdown(f"[🔗 View Project]({project['link']})")
         
         with col2:
             if st.button("Edit", key=f"edit_milestone_{idx}"):
@@ -326,7 +382,12 @@ if st.session_state.milestone_projects:
         if st.session_state.get(f"editing_milestone_{idx}", False):
             with st.form(f"edit_milestone_form_{idx}"):
                 new_title = st.text_input("Project Title", value=project['title'], key=f"edit_m_title_{idx}")
-                new_description = st.text_area("Project Description", value=project['description'], key=f"edit_m_desc_{idx}")
+                try:
+                    old_release_date = datetime.strptime(project.get('release_date', ''), '%Y-%m-%d').date()
+                except:
+                    old_release_date = datetime.now().date()
+                new_release_date = st.date_input("Release Date", value=old_release_date, key=f"edit_m_release_date_{idx}")
+                new_description = create_rich_text_editor("Project Description", value=project['description'], key_prefix=f"edit_milestone_desc_{idx}")
                 new_technologies = st.text_input("Technologies (comma-separated)", value=', '.join(project['technologies']), key=f"edit_m_tech_{idx}")
                 new_link = st.text_input("Project Link", value=project['link'], key=f"edit_m_link_{idx}")
                 new_photo = st.file_uploader("Update photo", type=["jpg", "jpeg", "png", "gif"], key=f"edit_m_photo_{idx}")
@@ -340,6 +401,7 @@ if st.session_state.milestone_projects:
                             if p['title'] == project['title']:
                                 st.session_state.milestone_projects[i] = {
                                     "title": new_title,
+                                    "release_date": new_release_date.strftime('%Y-%m-%d'),
                                     "description": new_description,
                                     "technologies": [tech.strip() for tech in new_technologies.split(',') if tech.strip()],
                                     "link": new_link
@@ -387,7 +449,8 @@ st.markdown('<div class="section-header">Fundamental Projects</div>', unsafe_all
 with st.expander("+ Add Fundamental Project"):
     with st.form("small_form"):
         title = st.text_input("Project Title", key="small_title")
-        description = st.text_area("Project Description", key="small_desc")
+        release_date = st.date_input("Release Date", value=datetime.now().date(), key="small_release_date")
+        description = create_rich_text_editor("Project Description", key_prefix="small_desc")
         technologies = st.text_input("Technologies (comma-separated)", key="small_tech")
         link = st.text_input("Project Link", key="small_link")
         image = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "gif"], key="small_photo")
@@ -396,6 +459,7 @@ with st.expander("+ Add Fundamental Project"):
         if submitted and title:
             new_project = {
                 "title": title,
+                "release_date": release_date.strftime('%Y-%m-%d'),
                 "description": description,
                 "technologies": [tech.strip() for tech in technologies.split(',') if tech.strip()],
                 "link": link
@@ -417,6 +481,15 @@ with st.expander("+ Add Fundamental Project"):
 if st.session_state.small_projects:
     for idx, project in enumerate(st.session_state.small_projects):
         project_key = project['title']
+        release_date_str = project.get('release_date', 'N/A')
+        if release_date_str != 'N/A':
+            try:
+                release_date_obj = datetime.strptime(release_date_str, '%Y-%m-%d')
+                release_date_formatted = release_date_obj.strftime('%B %Y')
+            except:
+                release_date_formatted = release_date_str
+        else:
+            release_date_formatted = 'N/A'
         
         col1, col2, col3 = st.columns([1, 0.15, 0.15])
         
@@ -432,11 +505,14 @@ if st.session_state.small_projects:
                     {photo_html}
                     <h4 style="margin: 0;">{project['title']}</h4>
                 </div>
-                <p>{project['description']}</p>
+                <p><strong>Released:</strong> {release_date_formatted}</p>
                 <p><strong>Technologies:</strong> {', '.join(project['technologies'])}</p>
-                {"<a href='" + project['link'] + "' target='_blank'>View Code</a>" if project['link'] else ""}
             </div>
             """, unsafe_allow_html=True)
+            # Display description with proper formatting
+            st.markdown(project['description'])
+            if project['link']:
+                st.markdown(f"[🔗 View Code]({project['link']})")
         
         with col2:
             if st.button("Edit", key=f"edit_small_{idx}"):
@@ -456,7 +532,12 @@ if st.session_state.small_projects:
         if st.session_state.get(f"editing_small_{idx}", False):
             with st.form(f"edit_small_form_{idx}"):
                 new_title = st.text_input("Project Title", value=project['title'], key=f"edit_s_title_{idx}")
-                new_description = st.text_area("Project Description", value=project['description'], key=f"edit_s_desc_{idx}")
+                try:
+                    old_release_date = datetime.strptime(project.get('release_date', ''), '%Y-%m-%d').date()
+                except:
+                    old_release_date = datetime.now().date()
+                new_release_date = st.date_input("Release Date", value=old_release_date, key=f"edit_s_release_date_{idx}")
+                new_description = create_rich_text_editor("Project Description", value=project['description'], key_prefix=f"edit_small_desc_{idx}")
                 new_technologies = st.text_input("Technologies (comma-separated)", value=', '.join(project['technologies']), key=f"edit_s_tech_{idx}")
                 new_link = st.text_input("Project Link", value=project['link'], key=f"edit_s_link_{idx}")
                 new_photo = st.file_uploader("Update photo", type=["jpg", "jpeg", "png", "gif"], key=f"edit_s_photo_{idx}")
@@ -470,6 +551,7 @@ if st.session_state.small_projects:
                             if p['title'] == project['title']:
                                 st.session_state.small_projects[i] = {
                                     "title": new_title,
+                                    "release_date": new_release_date.strftime('%Y-%m-%d'),
                                     "description": new_description,
                                     "technologies": [tech.strip() for tech in new_technologies.split(',') if tech.strip()],
                                     "link": new_link
